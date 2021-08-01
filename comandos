@@ -1,0 +1,270 @@
+//crear un cluster
+minikube start -p cluster1
+
+minikube start --nodes 2 -p multinode-demo
+
+//ver status del cluster
+minikube status
+
+minikube start --nodes 3 -p multinode-test
+
+//kubectl
+kubectl get nodes: lista todos los nodos que tiene nuestro cluster
+kubectl --config: puedes pasarle el archivo de configuración en caso de estar usando uno diferente.
+kubectl --server --user: especificas la configuración sin necesidad de darle un archivo.
+kubectl get nodes -a wide: muestra más datos de los nodos
+kubectl describe nodes node1: da mucha información de ese nodo en especifico.
+kubectl explain node: permite ver la definición de todo lo relacionado a ese nodo
+
+//pods
+sudo kubectl get pods
+sudo kubectl get pods --all-namespaces
+sudo kubectl get pods -n kube-system
+sudo kubectl get secrets
+sudo kubectl get secrets -n kube-public
+sudo kubectl run pingpong --image alpine ping 1.1.1.1
+sudo kubectl get pods
+sudo kubectl get all
+sudo kubectl logs deploy/pingpong
+sudo kubectl logs deploy/pingpong --tail 20
+sudo kubectl logs deploy/pingpong --tail 20 -f
+sudo kubectl logs -l run=pingpong
+ sudo kubectl gets pods
+sudo kubectl describe pods pingpong
+
+//deployment
+kubectl create deployment pingdnsgoogle --image=alpine -- ping 8.8.8.8
+kubectl scale deploy/pingpong --replicas 8
+kubectl scale deployments/pingdnsgoogle --replicas 8
+kubectl get pods -w
+kubectl delete pods pingdnsgoogle-55f9457fb9-t5t5
+kubectl describe pod pingdnsgoogle-55f9457fb9-6wjfg
+kubectl get pod pingdnsgoogle-55f9457fb9-6wjfg -o yaml
+kubectl run --dry-run -o yaml ping --image alpine ping 8.8.4.4 
+
+kubectl get pods
+kubectl describe pod idpod
+kubectl get all
+kubectl delete deploy/httpenv 
+kubectl create deployment httpenv --image jpetazzo/httpenv
+kubectl get pods
+kubectl get all
+kubectl scale deployment httpenv --replicas=5
+kubectl get pods
+kubectl get pods -o wide
+curl http://10.44.0.5:8888
+curl http://10.44.0.5:8888 |jq ""   // formatea resultado hayq ye revisar ela version  de linux
+kubectl expose deployment httpenv --port=8888
+kubectl get svc
+for i in $(seq 10); do curl -s http://10.110.57.28:8888 |jq .HOSTNAME; done
+------------------------------------------------------------
+sudo iptables -t nat -L OUTPUT
+sudo iptables -t nat -nL KUBE-SERVICES
+sudo iptables -t nat -nL KUBE-SVC-WHBE4CO6OW2LBOXF
+sudo iptables -t nat -nL KUBE-SEP-ISQ22OJBOFERAA4G
+kubectl get pods -o wide
+kubectl describe service httpenv
+kubectl describe endpoints httpenv 
+kubectl get endpoints httpenv -o yaml
+-----------------------------------
+
+kubectl create deployment redis --image=redis
+kubectl get all
+kubectl delete service httpenv
+kubectl get all
+kubectl get pods
+kubectl delete service httpenv
+kubectl get pods
+kubectl create deployment hasher --image=dockercoins/hasher:v0.1
+kubeclt get pods
+kubectl get pods
+kubectl create deployment rng --image=dockercoins/rng:v0.1
+kubectl get pods
+kubectl create deployment webui --image=dockercoins/webui:v0.1
+kubectl get pods
+kubectl create deployment worker --image=dockercoins/worker:v0.1
+kubectl logs deploy/rng
+kubectl logs deploy/worker
+kubectl expose deployment redis --port 6379
+kubectl expose deployment rng --port 80
+kubectl expose deployment hasher --port 80
+kubectl expose deploy/webui --type=NodePort --port=80
+
+//ver servicios
+kubectl get svc
+
+-------------------------------------------------------
+kubectl get services kubernetes
+curl https://10.96.0.1
+curl -k https://10.96.0.1 //no revisar certificados
+kubectl proxy &
+curl http://localhost:8001
+curl http://localhost:8001/version
+fg
+kubectl proxy --help
+kubectl get service
+kubectl port-forward svc/redis 10000:6379 &
+telnet localhost 10000
+info 
+-------------------------------------------
+
+kubectl apply -f kubernetes-dashboard.yaml
+
+-------------------------------------------
+kubectl get deployment -w
+
+kubectl get deploy/rng -o yaml --export > rng.yml
+o
+kubectl get deploy/rng -o yaml > rng.yml
+
+kind DaemonSet
+kubectl apply -f rng.yml
+kubectl apply -f rng.yml --validate=false
+kubectl describe service rng
+kubectl get pods --selector=app=rng
+kubectl label pod podname app- //borrar label
+
+//Modificar la estrategia de rolling update
+kubectl edit deploy worker
+
+//actualiza el estado
+kubectl rollout status deployment worker 
+
+//filtrar para ver estrategia
+kubectl get deploy -o json worker | jq "{name:.metadata.name} + .spec.strategy.rollingUpdate"
+
+// si esta imagen no existe, permite observar el comportamiento de la estrategia de rolling update
+kubectl set image deploy worker worker=dockercoins/worker:v0.3
+
+//volver a la ultima version
+kubectl rollout undo deploy worker
+kubectl get pods
+
+//para agregar livenessProbe
+kubectl edit deployment redis
+https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+
+//para ingresar al pods
+kubectl exec id_pod -it bash
+
+// Instalar helm
+curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
+
+// Verificar si tenemos helm instalado
+helm
+
+// Configurar helm
+helm init
+
+// Verificar si Tiller está instalado
+kubectl get pods -n kube-system
+
+// Dar permisos a helm
+kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
+
+// Buscar paquetes
+helm search
+
+// Ejemplo de cómo instalar un paquete
+helm search prometheus
+helm inspect stable/prometheus | less
+helm install stable/prometheus --set server.service.type=NodePort --set server.persistentVolume.enabled=false
+
+// Obtener servicios
+kubectl get svc
+
+// Crear helm chart
+helm create dockercoins
+cd dockercoins
+mv templates/ templates-old
+mkdir templates
+cd ..
+kubectl get -o yaml --export deployment worker
+
+//crear configmaps
+kubectl create configmap haproxy --from-file=haproxy.cfg
+
+//ver configmaps
+kubectl get configmap haproxy -o yaml | less
+
+//crear un pod
+kubectl apply -f haproxy.yaml
+
+//crear configmaps con un literal
+kubectl create configmap registry --from-literal=http.addr=0.0.0.0:80
+vi registry.yaml
+
+//crea el pod
+kubectl apply -f  registry.yaml
+
+//ver namespace
+kubectl get namespace
+
+//Crear un namespace llamado blue
+kubectl create namespace blue
+
+//Cambiar al nuevo namespace
+kubectl config set-context --current --namespace=blue
+
+//Validar que se cambio de namespace
+kubectl config get-contexts
+
+//ver servicios
+kubectl -n blue get svc
+
+//ver el contexto
+kubectl config get-contexts
+
+//
+kubectl get secrets
+
+//ver certificado tls
+kubectl config view --raw -o json | jq -r .users[0].user[“client-certificate-data”] | base64 -d | openssl x509 -text | grep Subject
+
+//obtener token usuario admin
+kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')
+
+kubectl get serviceaccount
+kubectl get secrets
+
+kubectl get sa default -o yaml
+
+//Crear el service account
+kubectl create sa viewer
+
+kubectl get sa
+
+//Crear el RoleBinding
+kubectl create rolebinding viewercanview --clusterrole=view --serviceaccount=default:viewer
+
+//Correr el pod
+kubectl run eyepod --rm -ti --restart=Never --serviceaccount=viewer --image alpine
+
+//Dentro del pod, obtener la última versión estable de kubernetes
+curl https://storage.googleapis.com/kubernetes-release/release/stable.txt
+
+//Descargar la versión de kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.20.1/bin/linux/amd64/kubectl
+
+//Hacer a kubectl ejecutable
+
+chmod +x ./kubectl
+
+//Obtener todo
+
+./kubectl get all
+
+//Preguntas de authorization
+
+./kubectl auth can-i list nodes
+
+./kubectl auth can-i create pods
+
+./kubectl auth can-i get pods
+
+//Obtener RoleBindings
+
+kubectl get clusterrolebindings -o yaml | grep -e kubernetes-admin -e system:masters
+
+kubectl describe clusterrolebinding cluster-admin
+
